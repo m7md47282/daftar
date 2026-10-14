@@ -1,0 +1,23 @@
+server {
+  listen ${PORT};
+  root /usr/share/nginx/html;
+  client_max_body_size 4m;
+  server_tokens off;
+
+  # security headers (repeated in locations that set their own add_header, as nginx requires)
+  add_header X-Content-Type-Options nosniff always;
+  add_header X-Frame-Options DENY always;
+  add_header Referrer-Policy strict-origin-when-cross-origin always;
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+  add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+
+  location /api/ { proxy_pass ${API_URL}; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; proxy_read_timeout 600s; proxy_ssl_server_name on; }
+  location /s/   { proxy_pass ${API_URL}; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_ssl_server_name on; }
+  location / {
+    try_files $uri $uri/ /index.html;
+    add_header Cache-Control "no-cache";
+    add_header X-Content-Type-Options nosniff always; add_header X-Frame-Options DENY always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always; add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+  }
+  location ~* \.(js|css|woff2?|png|svg|ico)$ { expires 1y; add_header Cache-Control "public, immutable"; add_header X-Content-Type-Options nosniff always; }
+}

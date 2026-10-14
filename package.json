@@ -1,0 +1,13 @@
+{
+  "name": "daftar",
+  "private": true,
+  "scripts": {
+    "db:up": "docker compose up -d",
+    "db:setup": "node server/scripts/setup.ts",
+    "dev:api": "node --watch server/src/main.ts",
+    "dev:web": "pnpm --filter web dev",
+    "deploy:demo": "bash deploy/demo.sh",
+    "test": "node --test --test-concurrency=1 server/test/*.test.ts"
+  },
+  "packageManager": "pnpm@12.3.4"
+}

@@ -1,0 +1,47 @@
+# Demo stack, same images as Cloud Run, sized for a small machine.
+#   docker compose -p daftar-demo -f docker-compose.prod.yml up --build -d
+#   docker compose -p daftar-demo -f docker-compose.prod.yml run --rm setup
+# Use -p daftar-demo so this does not replace the dev Postgres from docker-compose.yml.
+services:
+  db:
+    image: postgres:16-alpine
+    environment: { POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres }
+    volumes: [daftar_prod_pg:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    deploy:
+      resources:
+        limits: { cpus: "0.25", memory: 512M }
+  api:
+    build: { context: ., dockerfile: server/Dockerfile }
+    env_file: .env
+    # values here override .env (whose CHROME_PATH points at a desktop browser). NODE_ENV=development because this
+    # local stack runs on http with the .env dev passwords; real production (Cloud Run) runs NODE_ENV=production.
+    environment: { PG_HOST: db, PG_PORT: "5432", PORT: "8080", WEB_ORIGIN: "http://localhost:8086", CHROME_PATH: /usr/bin/chromium, NODE_ENV: development }
+    shm_size: 256mb
+    depends_on:
+      db: { condition: service_healthy }
+    deploy:
+      resources:
+        limits: { cpus: "0.5", memory: 1G }
+  setup:
+    build: { context: ., dockerfile: server/Dockerfile }
+    env_file: .env
+    environment: { PG_HOST: db, PG_PORT: "5432", CHROME_PATH: /usr/bin/chromium }
+    command: ["node", "server/scripts/setup.ts"]
+    depends_on:
+      db: { condition: service_healthy }
+    profiles: [setup]
+  web:
+    build: { context: ., dockerfile: web/Dockerfile }
+    environment: { API_URL: "http://api:8080" }
+    ports: ["8086:8080"]
+    depends_on: [api]
+    deploy:
+      resources:
+        limits: { cpus: "0.25", memory: 128M }
+volumes:
+  daftar_prod_pg:

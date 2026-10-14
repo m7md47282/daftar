@@ -1,0 +1,9 @@
+packages:
+  - server
+  - web
+  - mcp
+allowBuilds:
+  '@parcel/watcher': true
+  esbuild: true
+  lmdb: true
+  msgpackr-extract: true
